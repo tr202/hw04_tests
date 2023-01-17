@@ -5,7 +5,6 @@ from django.core.paginator import Paginator
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-
 from users.check_user import authorized_only
 
 from .forms import PostForm

@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from pytils.translit import slugify
 
+from .utils import slugify
 from .validators import post_text_validator as ptv
 
 User = get_user_model()

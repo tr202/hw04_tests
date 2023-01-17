@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}
+  {{ author.get_full_name }} профайл пользователя
+{% endblock %}
+{% block content %}        
+  <h1>Все посты пользователя {{ author.get_full_name }} </h1>
+  <h3>Всего постов: {{ post_list.count }} </h3>
+{% include 'posts/includes/posts_view.html' %}
+{% endblock %}

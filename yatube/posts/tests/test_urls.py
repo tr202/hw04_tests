@@ -1,28 +1,26 @@
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
-from posts.models import Group, Post
+from django.urls import reverse
 
-User = get_user_model()
+from mixer.backend.django import mixer
+
+from posts.models import Group, Post, User
+
+from .config_tests import (AUTHORISATION_PAGES_CASES,
+                           UNEXISTING_URL)
+from .utils import get_obj_test_urls
 
 
 class PostURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='auth')
-        cls.user_no_post_author = User.objects.create_user(
-            username='auth_no_author')
-        cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='test-slug',
-            description='Тестовое описание',
-        )
-        cls.post = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост' * 15,
-        )
+        cls.user = mixer.blend(User)
+        cls.user_no_post_author = mixer.blend(User)
+        cls.group = mixer.blend(Group)
+        cls.post = mixer.blend(Post, author=cls.user, group=cls.group)
+        cls.test_urls = get_obj_test_urls(cls)
 
     def setUp(self):
         self.guest_client = Client()
@@ -31,47 +29,36 @@ class PostURLTests(TestCase):
         self.authorized_client.force_login(self.user)
         self.authorized_client_no_post_author.force_login(
             self.user_no_post_author)
-        self.clients = (self.guest_client, self.authorized_client,)
+        self.clients = (
+            self.guest_client, self.authorized_client_no_post_author,)
 
-    def test_author_get_create_post_with_edit(self):
-        """Автору показывается create_post/edit/"""
-        response = self.authorized_client.get(f'/posts/{self.post.pk}/edit/')
-        self.assertTemplateUsed(response, 'posts/create_post.html')
+    def test_unexisting_page_get_404(self):
+        """Несуществующая страница"""
+        response = self.guest_client.get(UNEXISTING_URL)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-    def test_authorized_no_author_get_redirect(self):
-        """Авторизованному но не автору отдается редирект"""
-        response = self.authorized_client_no_post_author.get(
-            f'/posts/{self.post.pk}/edit/')
-        self.assertRedirects(response, f'/posts/{self.post.pk}/')
-
-    def test_create_post(self):
-        """Авторизованному пользователю показывается /create/"""
-        response = self.authorized_client.get('/create/')
-        self.assertTemplateUsed(response, 'posts/create_post.html')
-
-    def test_guest_client_get_redirect_to_login(self):
-        """Неавторизованный получает редирект на /auth/login/"""
-        response = self.guest_client.get('/create/')
-        self.assertRedirects(response, '/auth/login/')
-
-    def test_unexisting_url_get_404(self):
-        """Несуществующий url получает 404."""
-        for client in self.clients:
-            with self.subTest(client=client):
-                response = client.get('/unexisting_page/')
-                self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+    def test_authorisation_cases(self):
+        """Запросы правильно переадресуются"""
+        pages = AUTHORISATION_PAGES_CASES
+        for client, page in zip(self.clients, pages):
+            with self.subTest():
+                response = client.get(self.test_urls[page].url)
+                self.assertRedirects(
+                    response, self.test_urls[page].redirect_url)
 
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
-        url_names_templates = {
-            '/': 'posts/index.html',
-            '/group/test-slug/': 'posts/group_list.html',
-            '/profile/auth/': 'posts/profile.html',
-            f'/posts/{self.post.pk}/': 'posts/post_detail.html',
-        }
+        for name, item in self.test_urls.items():
+            with self.subTest(name=name, address=item.url):
+                response = self.authorized_client.get(item.url)
+            self.assertTemplateUsed(response, item.template)
 
-        for client in self.clients:
-            for address, template in url_names_templates.items():
-                with self.subTest(address=address):
-                    response = client.get(address)
-                    self.assertTemplateUsed(response, template)
+    def test_namespase_template(self):
+        """Проверка reverse namespase."""
+        for name, item in self.test_urls.items():
+            with self.subTest(name=name):
+                response = self.authorized_client.get(
+                    reverse(
+                        f'{item.app_name}:{item.page_name}',
+                        kwargs=item.kwargs))
+                self.assertTemplateUsed(response, item.template)

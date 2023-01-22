@@ -1,10 +1,12 @@
 from functools import wraps
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+
 from users.check_user import authorized_only
 
 from .forms import PostForm
@@ -65,7 +67,7 @@ def post_create(request):
 def profile(request, username):
     author = get_object_or_404(User, username=username)
     post_list = author.posts.all()
-    paginator = Paginator(post_list, 10)
+    paginator = Paginator(post_list, settings.PAGE_POSTS_COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     context = {
@@ -87,7 +89,7 @@ def post_detail(request, post_id):
 def index(request):
     template = 'posts/index.html'
     post_list = Post.objects.all()
-    paginator = Paginator(post_list, 10)
+    paginator = Paginator(post_list, settings.PAGE_POSTS_COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     context = {
@@ -100,7 +102,7 @@ def group_posts(request, slug):
     template = 'posts/group_list.html'
     group = get_object_or_404(Group, slug=slug)
     post_list = group.posts.all()
-    paginator = Paginator(post_list, 10)
+    paginator = Paginator(post_list, settings.PAGE_POSTS_COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     context = {

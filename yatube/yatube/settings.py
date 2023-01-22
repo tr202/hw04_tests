@@ -10,6 +10,7 @@ LOGIN_REDIRECT_URL = 'posts:index'
 # LOGOUT_REDIRECT_URL = 'posts:index'
 
 EMPTY_VALUE_DISPLAY = '-пусто-'
+PAGE_POSTS_COUNT = 10
 
 SECRET_KEY = 'bhp2v8#8^k8)@h011o8qo$&g(bhmu2^m1$th$d1$shfsv+$cfb'
 

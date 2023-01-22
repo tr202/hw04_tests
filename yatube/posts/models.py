@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 from .utils import slugify
-from .validators import post_text_validator as ptv
+from .validators import not_empty_post_text_validator as ptv
 
 User = get_user_model()
 
@@ -13,7 +13,6 @@ class Group(models.Model):
         'Slug-группы',
         unique=True,
         blank=False,
-        max_length=100,
         help_text=('Укажите адрес для страницы задачи. Используйте только '
                    'латиницу, цифры, дефисы и знаки подчёркивания')
     )
@@ -26,7 +25,7 @@ class Group(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)[:100]
+            self.slug = slugify(self.title)[:50]
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:

@@ -1,10 +1,7 @@
-from django.contrib.auth import get_user_model
 from django.core.validators import validate_unicode_slug
 from django.test import TestCase
 
-from ..models import Group, Post
-
-User = get_user_model()
+from ..models import Group, Post, User
 
 
 class PostModelTest(TestCase):
@@ -34,3 +31,13 @@ class PostModelTest(TestCase):
         """Проверяем, наличие и корректность slug по умолчанию"""
         task = PostModelTest.group
         validate_unicode_slug(task.slug)
+
+    def qtest_greated_post_has_expected_group(self):
+        """Проверка, что пост не попал в чужую группу."""
+        group = Group.objects.get(title='Тестовая группа')
+        self.post = Post.objects.create(
+            author=self.user,
+            text='Пост проверки соответствия группы',
+            group=group,
+        )
+        self.assertEqual(Post.objects.get(pk=self.post.pk).group, group)
